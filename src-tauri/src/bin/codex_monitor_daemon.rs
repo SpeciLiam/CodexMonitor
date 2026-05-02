@@ -81,8 +81,8 @@ use shared::codex_core::CodexLoginCancelState;
 use shared::process_core::kill_child_process_tree;
 use shared::prompts_core::{self, CustomPromptEntry};
 use shared::{
-    agents_config_core, codex_aux_core, codex_core, files_core, git_core, git_ui_core,
-    local_usage_core, settings_core, workspaces_core, worktree_core,
+    agents_config_core, automations_core, codex_aux_core, codex_core, files_core, git_core,
+    git_ui_core, local_usage_core, settings_core, workspaces_core, worktree_core,
 };
 use storage::{read_settings, read_workspaces};
 use types::{
@@ -638,6 +638,45 @@ impl DaemonState {
         content: String,
     ) -> Result<(), String> {
         agents_config_core::write_agent_config_toml_core(agent_name.as_str(), content.as_str())
+    }
+
+    async fn automations_list(&self) -> Result<automations_core::AutomationsSettingsDto, String> {
+        automations_core::automations_list_core()
+    }
+
+    async fn automations_read(
+        &self,
+        id: String,
+    ) -> Result<automations_core::AutomationDto, String> {
+        automations_core::automations_read_core(id.as_str())
+    }
+
+    async fn automations_create(
+        &self,
+        input: automations_core::AutomationUpsertInput,
+    ) -> Result<automations_core::AutomationsSettingsDto, String> {
+        automations_core::automations_create_core(input)
+    }
+
+    async fn automations_update(
+        &self,
+        input: automations_core::AutomationUpsertInput,
+    ) -> Result<automations_core::AutomationsSettingsDto, String> {
+        automations_core::automations_update_core(input)
+    }
+
+    async fn automations_delete(
+        &self,
+        id: String,
+    ) -> Result<automations_core::AutomationsSettingsDto, String> {
+        automations_core::automations_delete_core(id.as_str())
+    }
+
+    async fn automations_set_status(
+        &self,
+        input: automations_core::AutomationStatusInput,
+    ) -> Result<automations_core::AutomationsSettingsDto, String> {
+        automations_core::automations_set_status_core(input)
     }
 
     async fn list_workspace_files(&self, workspace_id: String) -> Result<Vec<String>, String> {

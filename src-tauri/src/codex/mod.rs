@@ -14,6 +14,7 @@ use crate::backend::events::AppServerEvent;
 use crate::event_sink::TauriEventSink;
 use crate::remote_backend;
 use crate::shared::agents_config_core;
+use crate::shared::automations_core;
 use crate::shared::codex_core::{self, insert_optional_nullable_string};
 use crate::state::AppState;
 use crate::types::WorkspaceEntry;
@@ -710,6 +711,112 @@ pub(crate) async fn write_agent_config_toml(
     }
 
     agents_config_core::write_agent_config_toml_core(agent_name.as_str(), content.as_str())
+}
+
+#[tauri::command]
+pub(crate) async fn automations_list(
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<automations_core::AutomationsSettingsDto, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        let response =
+            remote_backend::call_remote(&*state, app, "automations_list", json!({})).await?;
+        return serde_json::from_value(response).map_err(|err| err.to_string());
+    }
+
+    automations_core::automations_list_core()
+}
+
+#[tauri::command]
+pub(crate) async fn automations_read(
+    id: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<automations_core::AutomationDto, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        let response =
+            remote_backend::call_remote(&*state, app, "automations_read", json!({ "id": id }))
+                .await?;
+        return serde_json::from_value(response).map_err(|err| err.to_string());
+    }
+
+    automations_core::automations_read_core(id.as_str())
+}
+
+#[tauri::command]
+pub(crate) async fn automations_create(
+    input: automations_core::AutomationUpsertInput,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<automations_core::AutomationsSettingsDto, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        let response = remote_backend::call_remote(
+            &*state,
+            app,
+            "automations_create",
+            json!({ "input": input }),
+        )
+        .await?;
+        return serde_json::from_value(response).map_err(|err| err.to_string());
+    }
+
+    automations_core::automations_create_core(input)
+}
+
+#[tauri::command]
+pub(crate) async fn automations_update(
+    input: automations_core::AutomationUpsertInput,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<automations_core::AutomationsSettingsDto, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        let response = remote_backend::call_remote(
+            &*state,
+            app,
+            "automations_update",
+            json!({ "input": input }),
+        )
+        .await?;
+        return serde_json::from_value(response).map_err(|err| err.to_string());
+    }
+
+    automations_core::automations_update_core(input)
+}
+
+#[tauri::command]
+pub(crate) async fn automations_delete(
+    id: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<automations_core::AutomationsSettingsDto, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        let response =
+            remote_backend::call_remote(&*state, app, "automations_delete", json!({ "id": id }))
+                .await?;
+        return serde_json::from_value(response).map_err(|err| err.to_string());
+    }
+
+    automations_core::automations_delete_core(id.as_str())
+}
+
+#[tauri::command]
+pub(crate) async fn automations_set_status(
+    input: automations_core::AutomationStatusInput,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<automations_core::AutomationsSettingsDto, String> {
+    if remote_backend::is_remote_mode(&*state).await {
+        let response = remote_backend::call_remote(
+            &*state,
+            app,
+            "automations_set_status",
+            json!({ "input": input }),
+        )
+        .await?;
+        return serde_json::from_value(response).map_err(|err| err.to_string());
+    }
+
+    automations_core::automations_set_status_core(input)
 }
 
 #[tauri::command]

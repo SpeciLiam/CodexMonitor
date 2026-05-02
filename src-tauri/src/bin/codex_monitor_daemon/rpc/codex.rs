@@ -385,6 +385,72 @@ pub(super) async fn try_handle(
                     .map(|_| json!({ "ok": true })),
             )
         }
+        "automations_list" => Some(
+            state
+                .automations_list()
+                .await
+                .and_then(|value| serde_json::to_value(value).map_err(|err| err.to_string())),
+        ),
+        "automations_read" => {
+            let id = match parse_string(params, "id") {
+                Ok(value) => value,
+                Err(err) => return Some(Err(err)),
+            };
+            Some(
+                state
+                    .automations_read(id)
+                    .await
+                    .and_then(|value| serde_json::to_value(value).map_err(|err| err.to_string())),
+            )
+        }
+        "automations_create" => {
+            let input = match parse_input::<automations_core::AutomationUpsertInput>(params) {
+                Ok(value) => value,
+                Err(err) => return Some(Err(err)),
+            };
+            Some(
+                state
+                    .automations_create(input)
+                    .await
+                    .and_then(|value| serde_json::to_value(value).map_err(|err| err.to_string())),
+            )
+        }
+        "automations_update" => {
+            let input = match parse_input::<automations_core::AutomationUpsertInput>(params) {
+                Ok(value) => value,
+                Err(err) => return Some(Err(err)),
+            };
+            Some(
+                state
+                    .automations_update(input)
+                    .await
+                    .and_then(|value| serde_json::to_value(value).map_err(|err| err.to_string())),
+            )
+        }
+        "automations_delete" => {
+            let id = match parse_string(params, "id") {
+                Ok(value) => value,
+                Err(err) => return Some(Err(err)),
+            };
+            Some(
+                state
+                    .automations_delete(id)
+                    .await
+                    .and_then(|value| serde_json::to_value(value).map_err(|err| err.to_string())),
+            )
+        }
+        "automations_set_status" => {
+            let input = match parse_input::<automations_core::AutomationStatusInput>(params) {
+                Ok(value) => value,
+                Err(err) => return Some(Err(err)),
+            };
+            Some(
+                state
+                    .automations_set_status(input)
+                    .await
+                    .and_then(|value| serde_json::to_value(value).map_err(|err| err.to_string())),
+            )
+        }
         "account_rate_limits" => {
             let workspace_id = match parse_string(params, "workspaceId") {
                 Ok(value) => value,

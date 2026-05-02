@@ -146,6 +146,46 @@ export type AgentsSettings = {
   agents: AgentSummary[];
 };
 
+export type AutomationSummary = {
+  id: string;
+  name: string;
+  kind: string;
+  status: string;
+  rrule: string;
+  prompt: string;
+  model: string | null;
+  reasoningEffort: string | null;
+  executionEnvironment: string | null;
+  cwds: string[];
+  createdAt: number | null;
+  updatedAt: number | null;
+  configPath: string;
+  memoryExists: boolean;
+};
+
+export type AutomationsSettings = {
+  automationsPath: string;
+  automations: AutomationSummary[];
+};
+
+export type AutomationUpsertInput = {
+  id: string;
+  name: string;
+  kind: string;
+  status: string;
+  rrule: string;
+  prompt: string;
+  model?: string | null;
+  reasoningEffort?: string | null;
+  executionEnvironment?: string | null;
+  cwds: string[];
+};
+
+export type AutomationStatusInput = {
+  id: string;
+  status: string;
+};
+
 export type SetAgentsCoreInput = {
   multiAgentEnabled: boolean;
   maxThreads: number;
@@ -245,6 +285,36 @@ export async function writeAgentConfigToml(
   content: string,
 ): Promise<void> {
   return invoke("write_agent_config_toml", { agentName, content });
+}
+
+export async function automationsList(): Promise<AutomationsSettings> {
+  return invoke<AutomationsSettings>("automations_list");
+}
+
+export async function automationsRead(id: string): Promise<AutomationSummary> {
+  return invoke<AutomationSummary>("automations_read", { id });
+}
+
+export async function automationsCreate(
+  input: AutomationUpsertInput,
+): Promise<AutomationsSettings> {
+  return invoke<AutomationsSettings>("automations_create", { input });
+}
+
+export async function automationsUpdate(
+  input: AutomationUpsertInput,
+): Promise<AutomationsSettings> {
+  return invoke<AutomationsSettings>("automations_update", { input });
+}
+
+export async function automationsDelete(id: string): Promise<AutomationsSettings> {
+  return invoke<AutomationsSettings>("automations_delete", { id });
+}
+
+export async function automationsSetStatus(
+  input: AutomationStatusInput,
+): Promise<AutomationsSettings> {
+  return invoke<AutomationsSettings>("automations_set_status", { input });
 }
 
 export async function getConfigModel(workspaceId: string): Promise<string | null> {

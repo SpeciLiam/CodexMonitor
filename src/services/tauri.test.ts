@@ -5,6 +5,12 @@ import * as notification from "@tauri-apps/plugin-notification";
 import {
   exportMarkdownFile,
   addWorkspace,
+  automationsCreate,
+  automationsDelete,
+  automationsList,
+  automationsRead,
+  automationsSetStatus,
+  automationsUpdate,
   compactThread,
   createGitHubRepo,
   fetchGit,
@@ -695,6 +701,56 @@ describe("tauri invoke wrappers", () => {
       agentName: "researcher",
       content: "model = \"gpt-5-codex\"",
     });
+  });
+
+  it("reads automations from Codex home", async () => {
+    const invokeMock = vi.mocked(invoke);
+    invokeMock.mockResolvedValueOnce({
+      automationsPath: "/Users/me/.codex/automations",
+      automations: [],
+    });
+
+    await automationsList();
+
+    expect(invokeMock).toHaveBeenCalledWith("automations_list");
+  });
+
+  it("reads a single automation", async () => {
+    const invokeMock = vi.mocked(invoke);
+    invokeMock.mockResolvedValueOnce({ id: "daily", name: "Daily" });
+
+    await automationsRead("daily");
+
+    expect(invokeMock).toHaveBeenCalledWith("automations_read", { id: "daily" });
+  });
+
+  it("creates, updates, pauses, and deletes automations", async () => {
+    const invokeMock = vi.mocked(invoke);
+    invokeMock.mockResolvedValue({});
+    const input = {
+      id: "daily",
+      name: "Daily",
+      kind: "cron",
+      status: "ACTIVE",
+      rrule: "FREQ=DAILY",
+      prompt: "Do work",
+      model: "gpt-5.4",
+      reasoningEffort: "medium",
+      executionEnvironment: "local",
+      cwds: ["/repo"],
+    };
+
+    await automationsCreate(input);
+    await automationsUpdate(input);
+    await automationsSetStatus({ id: "daily", status: "PAUSED" });
+    await automationsDelete("daily");
+
+    expect(invokeMock).toHaveBeenCalledWith("automations_create", { input });
+    expect(invokeMock).toHaveBeenCalledWith("automations_update", { input });
+    expect(invokeMock).toHaveBeenCalledWith("automations_set_status", {
+      input: { id: "daily", status: "PAUSED" },
+    });
+    expect(invokeMock).toHaveBeenCalledWith("automations_delete", { id: "daily" });
   });
 
   it("generates an improved agent description", async () => {

@@ -584,6 +584,130 @@
   margin-top: 12px;
 }
 
+.settings-automations-list,
+.settings-automations-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-automations-list {
+  margin-top: 10px;
+}
+
+.settings-automations-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-muted);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.settings-automations-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-automations-title-block {
+  min-width: 0;
+}
+
+.settings-automations-title {
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-automations-meta,
+.settings-automations-cwds {
+  margin-top: 3px;
+  color: var(--text-subtle);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.settings-automations-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-automations-pills span {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 4px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border-muted);
+  background: var(--surface-control);
+  color: var(--text-subtle);
+  font-size: 11px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.settings-automations-prompt {
+  color: var(--text-strong);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.settings-automations-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-automations-textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  border-radius: 10px;
+  border: 1px solid var(--border-muted);
+  background: var(--surface-1);
+  color: var(--text-strong);
+  font-family: var(--code-font-family);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px 12px;
+}
+
+.settings-automations-textarea--short {
+  min-height: 72px;
+}
+
+.settings-automations-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-automations-actions .danger {
+  color: var(--text-danger);
+  border-color: rgba(236, 72, 153, 0.35);
+  background: rgba(236, 72, 153, 0.08);
+}
+
+@media (max-width: 720px) {
+  .settings-automations-card-header {
+    align-items: center;
+  }
+
+  .settings-automations-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings-automations-textarea {
+    min-height: 150px;
+  }
+}
+
 @keyframes settings-spin {
   from {
     transform: rotate(0deg);

@@ -16,6 +16,7 @@ import { useSettingsEnvironmentsSection } from "./useSettingsEnvironmentsSection
 import { useSettingsFeaturesSection } from "./useSettingsFeaturesSection";
 import { useSettingsGitSection } from "./useSettingsGitSection";
 import { useSettingsAgentsSection } from "./useSettingsAgentsSection";
+import { useSettingsAutomationsSection } from "./useSettingsAutomationsSection";
 import { useSettingsProjectsSection } from "./useSettingsProjectsSection";
 import { useSettingsServerSection } from "./useSettingsServerSection";
 import type { GroupedWorkspaces } from "./settingsSectionTypes";
@@ -213,6 +214,7 @@ export function useSettingsViewOrchestration({
   });
 
   const agentsSectionProps = useSettingsAgentsSection({ projects });
+  const automationsSectionProps = useSettingsAutomationsSection();
 
   return {
     aboutSectionProps: {
@@ -272,6 +274,7 @@ export function useSettingsViewOrchestration({
     gitSectionProps,
     serverSectionProps,
     agentsSectionProps,
+    automationsSectionProps,
     codexSectionProps,
     featuresSectionProps,
   };
