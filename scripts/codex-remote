@@ -1,0 +1,190 @@
+#!/bin/zsh
+set -euo pipefail
+
+DATA_DIR="${CODEX_MONITOR_DATA_DIR:-$HOME/Library/Application Support/com.dimillian.codexmonitor}"
+APP_DIR="${CODEX_MONITOR_APP_DIR:-$HOME/Applications/Codex Monitor.app}"
+DAEMON="$APP_DIR/Contents/MacOS/codex_monitor_daemon"
+DAEMONCTL="$APP_DIR/Contents/MacOS/codex_monitor_daemonctl"
+CODEX_LABEL="com.dimillian.codexmonitor.daemon"
+CODEX_PLIST="$HOME/Library/LaunchAgents/$CODEX_LABEL.plist"
+RUNNER="$DATA_DIR/run-daemon.zsh"
+
+TS_DIR="${TAILSCALE_DATA_DIR:-$HOME/Library/Application Support/Tailscale}"
+TS_BIN="${TAILSCALE_BIN:-/opt/homebrew/bin/tailscale}"
+TS_DAEMON="${TAILSCALE_DAEMON:-/opt/homebrew/opt/tailscale/bin/tailscaled}"
+TS_SOCKET="$TS_DIR/tailscaled.sock"
+TS_LABEL="com.tailscale.userspace"
+TS_PLIST="$HOME/Library/LaunchAgents/$TS_LABEL.plist"
+
+uid() {
+  /usr/bin/id -u
+}
+
+json_token() {
+  /usr/bin/ruby -rjson -e 'data=JSON.parse(File.read(ARGV[0])); token=data["remoteBackendToken"]; abort("missing remoteBackendToken") if token.nil? || token.strip.empty?; print token' "$DATA_DIR/settings.json"
+}
+
+ensure_settings() {
+  /bin/mkdir -p "$DATA_DIR"
+  local host
+  host="$(json_host 2>/dev/null || echo "liams-air-2.taild6574c.ts.net:4732")"
+  /usr/bin/ruby -rjson -rsecurerandom -e '
+    path, host = ARGV
+    data = File.exist?(path) ? JSON.parse(File.read(path)) : {}
+    token = data["remoteBackendToken"]
+    token = SecureRandom.hex(32) if token.nil? || token.strip.empty?
+    data["backendMode"] ||= "local"
+    data["remoteBackendProvider"] = "tcp"
+    data["remoteBackendHost"] = host
+    data["remoteBackendToken"] = token
+    data["keepDaemonRunningAfterAppClose"] = true
+    data["activeRemoteBackendId"] ||= "remote-default"
+    data["remoteBackends"] = [{
+      "id" => data["activeRemoteBackendId"],
+      "name" => "Primary remote",
+      "provider" => "tcp",
+      "host" => host,
+      "token" => token,
+      "lastConnectedAtMs" => nil
+    }]
+    File.write(path, JSON.pretty_generate(data) + "\n")
+    File.chmod(0600, path)
+  ' "$DATA_DIR/settings.json" "$host"
+}
+
+json_host() {
+  /usr/bin/ruby -rjson -e 'data=JSON.parse(File.read(ARGV[0])); puts data["remoteBackendHost"] || "127.0.0.1:4732"' "$DATA_DIR/settings.json"
+}
+
+write_tailscale_plist() {
+  /bin/mkdir -p "$TS_DIR" "$HOME/Library/LaunchAgents"
+  /usr/bin/plutil -create xml1 "$TS_PLIST" 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Clear dict" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :Label string $TS_LABEL" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments array" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:0 string $TS_DAEMON" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:1 string --socket" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:2 string $TS_SOCKET" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:3 string --state" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:4 string $TS_DIR/tailscaled.state" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:5 string --tun" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:6 string userspace-networking" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :RunAtLoad bool true" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :KeepAlive bool true" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :StandardOutPath string $TS_DIR/tailscaled.log" "$TS_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :StandardErrorPath string $TS_DIR/tailscaled.err.log" "$TS_PLIST"
+  /bin/chmod 600 "$TS_PLIST"
+}
+
+write_codex_runner() {
+  /bin/mkdir -p "$DATA_DIR" "$HOME/Library/LaunchAgents"
+  /usr/bin/printf '%s\n' \
+    '#!/bin/zsh' \
+    'set -euo pipefail' \
+    "DATA_DIR='$DATA_DIR'" \
+    "APP_DIR='$APP_DIR'" \
+    'TOKEN=$(/usr/bin/ruby -rjson -e '\''data=JSON.parse(File.read(ARGV[0])); token=data["remoteBackendToken"]; abort("missing remoteBackendToken") if token.nil? || token.strip.empty?; print token'\'' "$DATA_DIR/settings.json")' \
+    'exec "$APP_DIR/Contents/MacOS/codex_monitor_daemon" --listen "0.0.0.0:4732" --data-dir "$DATA_DIR" --token "$TOKEN"' \
+    > "$RUNNER"
+  /bin/chmod 700 "$RUNNER"
+}
+
+write_codex_plist() {
+  write_codex_runner
+  /usr/bin/plutil -create xml1 "$CODEX_PLIST" 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Clear dict" "$CODEX_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :Label string $CODEX_LABEL" "$CODEX_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments array" "$CODEX_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:0 string /bin/zsh" "$CODEX_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :ProgramArguments:1 string $RUNNER" "$CODEX_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :RunAtLoad bool true" "$CODEX_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :KeepAlive bool true" "$CODEX_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :StandardOutPath string $DATA_DIR/daemon.log" "$CODEX_PLIST"
+  /usr/libexec/PlistBuddy -c "Add :StandardErrorPath string $DATA_DIR/daemon.err.log" "$CODEX_PLIST"
+  /bin/chmod 600 "$CODEX_PLIST"
+}
+
+start_tailscale() {
+  if [[ ! -x "$TS_BIN" || ! -x "$TS_DAEMON" ]]; then
+    echo "Tailscale CLI is not installed. Run: brew install tailscale"
+    return 1
+  fi
+  write_tailscale_plist
+  /bin/launchctl bootstrap "gui/$(uid)" "$TS_PLIST" 2>/dev/null || true
+  /bin/launchctl kickstart -k "gui/$(uid)/$TS_LABEL" 2>/dev/null || true
+}
+
+start_codex() {
+  ensure_settings
+  if [[ ! -x "$DAEMON" || ! -x "$DAEMONCTL" ]]; then
+    echo "CodexMonitor daemon binaries are missing under $APP_DIR"
+    return 1
+  fi
+  write_codex_plist
+  /bin/launchctl bootstrap "gui/$(uid)" "$CODEX_PLIST" 2>/dev/null || true
+  /bin/launchctl kickstart -k "gui/$(uid)/$CODEX_LABEL" 2>/dev/null || true
+}
+
+serve_codex() {
+  "$TS_BIN" --socket "$TS_SOCKET" serve --bg --tcp=4732 --yes 127.0.0.1:4732 >/dev/null
+}
+
+case "${1:-status}" in
+  on|start)
+    ensure_settings
+    start_tailscale
+    start_codex
+    sleep 1
+    if "$TS_BIN" --socket "$TS_SOCKET" status >/dev/null 2>&1; then
+      serve_codex || true
+    fi
+    "$DAEMONCTL" status --data-dir "$DATA_DIR" --token "$(json_token)" --json
+    ;;
+  off|stop)
+    "$TS_BIN" --socket "$TS_SOCKET" serve --tcp=4732 off >/dev/null 2>&1 || true
+    ensure_settings
+    "$DAEMONCTL" stop --data-dir "$DATA_DIR" --token "$(json_token)" --json 2>/dev/null || true
+    /bin/launchctl bootout "gui/$(uid)" "$CODEX_PLIST" 2>/dev/null || true
+    ;;
+  restart)
+    "$0" off
+    "$0" on
+    ;;
+  status)
+    ensure_settings
+    echo "CodexMonitor:"
+    "$DAEMONCTL" status --data-dir "$DATA_DIR" --token "$(json_token)" --json 2>/dev/null || "$DAEMONCTL" status --data-dir "$DATA_DIR" --json
+    echo
+    echo "Tailscale:"
+    "$TS_BIN" --socket "$TS_SOCKET" status 2>/dev/null || true
+    echo
+    echo "Tailscale Serve:"
+    "$TS_BIN" --socket "$TS_SOCKET" serve status 2>/dev/null || true
+    ;;
+  login)
+    ensure_settings
+    start_tailscale
+    "$TS_BIN" --socket "$TS_SOCKET" up
+    serve_codex || true
+    ;;
+  tailscale-off)
+    "$TS_BIN" --socket "$TS_SOCKET" down 2>/dev/null || true
+    /bin/launchctl bootout "gui/$(uid)" "$TS_PLIST" 2>/dev/null || true
+    ;;
+  host)
+    ensure_settings
+    json_host
+    ;;
+  token)
+    ensure_settings
+    json_token
+    echo
+    ;;
+  logs)
+    /usr/bin/tail -n 80 "$DATA_DIR/daemon.err.log" "$DATA_DIR/daemon.log" "$TS_DIR/tailscaled.err.log" "$TS_DIR/tailscaled.log" 2>/dev/null || true
+    ;;
+  *)
+    echo "Usage: codex-remote {on|off|restart|status|login|tailscale-off|host|token|logs}"
+    exit 2
+    ;;
+esac
