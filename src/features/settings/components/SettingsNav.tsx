@@ -112,6 +112,15 @@ export function SettingsNav({
         </PanelNavItem>
         <PanelNavItem
           className="settings-nav"
+          icon={<TerminalSquare aria-hidden />}
+          active={activeSection === "codex"}
+          showDisclosure={showDisclosure}
+          onClick={() => onSelectSection("codex")}
+        >
+          Codex
+        </PanelNavItem>
+        <PanelNavItem
+          className="settings-nav"
           icon={<Bot aria-hidden />}
           active={activeSection === "agents"}
           showDisclosure={showDisclosure}
@@ -127,15 +136,6 @@ export function SettingsNav({
           onClick={() => onSelectSection("automations")}
         >
           Automations
-        </PanelNavItem>
-        <PanelNavItem
-          className="settings-nav"
-          icon={<TerminalSquare aria-hidden />}
-          active={activeSection === "codex"}
-          showDisclosure={showDisclosure}
-          onClick={() => onSelectSection("codex")}
-        >
-          Codex
         </PanelNavItem>
         <PanelNavItem
           className="settings-nav"
