@@ -201,6 +201,59 @@ describe("useQueuedSend", () => {
     );
   });
 
+  it("steers a queued message into the active turn", async () => {
+    const options = makeOptions({
+      isProcessing: true,
+      steerEnabled: true,
+      followUpMessageBehavior: "queue",
+    });
+    const { result } = renderHook((props) => useQueuedSend(props), {
+      initialProps: options,
+    });
+
+    await act(async () => {
+      await result.current.handleSend("Steer this queued thought");
+    });
+    const queuedId = result.current.activeQueue[0]?.id;
+    expect(queuedId).toBeTruthy();
+
+    await act(async () => {
+      await result.current.steerQueuedMessage("thread-1", queuedId ?? "");
+    });
+
+    expect(options.sendUserMessage).toHaveBeenCalledTimes(1);
+    expect(options.sendUserMessage).toHaveBeenCalledWith(
+      "Steer this queued thought",
+      [],
+      undefined,
+      { sendIntent: "steer" },
+    );
+    expect(result.current.activeQueue).toHaveLength(0);
+  });
+
+  it("restores a queued message when swipe-to-steer fails", async () => {
+    const options = makeOptions({
+      isProcessing: true,
+      steerEnabled: true,
+      sendUserMessage: vi.fn().mockResolvedValue({ status: "steer_failed" }),
+    });
+    const { result } = renderHook((props) => useQueuedSend(props), {
+      initialProps: options,
+    });
+
+    await act(async () => {
+      await result.current.handleSend("Keep me queued");
+    });
+    const queuedId = result.current.activeQueue[0]?.id;
+
+    await act(async () => {
+      await result.current.steerQueuedMessage("thread-1", queuedId ?? "");
+    });
+
+    expect(result.current.activeQueue).toHaveLength(1);
+    expect(result.current.activeQueue[0]?.text).toBe("Keep me queued");
+  });
+
   it("retries queued send after failure", async () => {
     const options = makeOptions({
       sendUserMessage: vi

@@ -46,4 +46,35 @@ describe("ComposerQueue", () => {
     expect(onDeleteQueued).toHaveBeenCalledTimes(1);
     expect(onDeleteQueued).toHaveBeenCalledWith(queuedItem.id);
   });
+
+  it("steers a queued item after a horizontal touch swipe", () => {
+    const onSteerQueued = vi.fn();
+    render(
+      <ComposerQueue
+        queuedMessages={[queuedItem]}
+        onSteerQueued={onSteerQueued}
+      />,
+    );
+
+    const item = screen.getByText(queuedItem.text).closest(".composer-queue-item");
+    expect(item).toBeTruthy();
+    fireEvent.pointerDown(item as Element, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 10,
+    });
+    fireEvent.pointerMove(item as Element, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 88,
+    });
+    fireEvent.pointerUp(item as Element, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 88,
+    });
+
+    expect(onSteerQueued).toHaveBeenCalledTimes(1);
+    expect(onSteerQueued).toHaveBeenCalledWith(queuedItem.id);
+  });
 });

@@ -93,6 +93,7 @@ export function useComposerController({
     handleSend,
     queueMessage,
     removeQueuedMessage,
+    steerQueuedMessage,
   } = useQueuedSend({
     activeThreadId,
     activeTurnId,
@@ -169,6 +170,16 @@ export function useComposerController({
     [activeThreadId, removeQueuedMessage],
   );
 
+  const handleSteerQueued = useCallback(
+    (id: string) => {
+      if (!activeThreadId) {
+        return;
+      }
+      void steerQueuedMessage(activeThreadId, id);
+    },
+    [activeThreadId, steerQueuedMessage],
+  );
+
   const clearDraftForThread = useCallback((threadId: string) => {
     setComposerDraftsByThread((prev) => {
       if (!(threadId in prev)) {
@@ -200,6 +211,7 @@ export function useComposerController({
     handleSendPrompt,
     handleEditQueued,
     handleDeleteQueued,
+    handleSteerQueued,
     clearDraftForThread,
   };
 }

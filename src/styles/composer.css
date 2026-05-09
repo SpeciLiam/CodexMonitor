@@ -51,6 +51,33 @@
   gap: 4px;
 }
 
+.composer-queue-swipe {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.composer-queue-steer-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  color: var(--accent-strong);
+  opacity: 0;
+  transition: opacity 160ms ease;
+  pointer-events: none;
+}
+
+.composer-queue-steer-bg::after {
+  content: "";
+}
+
+.composer-queue-swipe.is-armed .composer-queue-steer-bg {
+  opacity: 1;
+}
+
 .composer-queue-item {
   display: flex;
   align-items: center;
@@ -60,6 +87,19 @@
   background: var(--surface-item);
   color: var(--text-quiet);
   font-size: 11px;
+  touch-action: pan-y;
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 160ms ease;
+  will-change: transform;
+}
+
+.composer-queue-swipe.is-dragging .composer-queue-item {
+  transition: background-color 160ms ease;
+}
+
+.composer-queue-swipe.is-armed .composer-queue-item {
+  background: var(--surface-selected);
 }
 
 .composer-queue-text {

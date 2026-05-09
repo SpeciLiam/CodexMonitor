@@ -501,6 +501,7 @@ function buildPrimarySurface({
           },
           onEditQueued: composerWorkspaceState.handleEditQueued,
           onDeleteQueued: composerWorkspaceState.handleDeleteQueued,
+          onSteerQueued: composerWorkspaceState.handleSteerQueued,
           collaborationModes,
           selectedCollaborationModeId,
           onSelectCollaborationMode,

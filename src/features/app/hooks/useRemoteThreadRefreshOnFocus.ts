@@ -3,6 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { WorkspaceInfo } from "../../../types";
 
 export const REMOTE_THREAD_POLL_INTERVAL_MS = 12000;
+export const REMOTE_THREAD_PROCESSING_POLL_INTERVAL_MS = 4000;
 
 type UseRemoteThreadRefreshOnFocusOptions = {
   backendMode: string;
@@ -117,14 +118,14 @@ export function useRemoteThreadRefreshOnFocus({
       }
       if (
         !canRefresh() ||
-        suspendPolling ||
-        activeThreadIsProcessing ||
         !windowFocused ||
         document.visibilityState !== "visible"
       ) {
         return;
       }
-      const pollIntervalMs = REMOTE_THREAD_POLL_INTERVAL_MS;
+      const pollIntervalMs = activeThreadIsProcessing
+        ? REMOTE_THREAD_PROCESSING_POLL_INTERVAL_MS
+        : REMOTE_THREAD_POLL_INTERVAL_MS;
       pollTimer = setInterval(() => {
         runRefresh();
       }, pollIntervalMs);
@@ -132,9 +133,7 @@ export function useRemoteThreadRefreshOnFocus({
 
     const handleFocus = () => {
       windowFocused = true;
-      if (!suspendPolling) {
-        refreshActiveThread();
-      }
+      refreshActiveThread();
       updatePolling();
     };
 
@@ -146,9 +145,7 @@ export function useRemoteThreadRefreshOnFocus({
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         windowFocused = true;
-        if (!suspendPolling) {
-          refreshActiveThread();
-        }
+        refreshActiveThread();
       }
       updatePolling();
     };

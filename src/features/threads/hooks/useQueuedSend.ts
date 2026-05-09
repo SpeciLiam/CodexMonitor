@@ -61,6 +61,7 @@ type UseQueuedSendResult = {
     appMentions?: AppMention[],
   ) => Promise<void>;
   removeQueuedMessage: (threadId: string, messageId: string) => void;
+  steerQueuedMessage: (threadId: string, messageId: string) => Promise<void>;
 };
 
 type SlashCommandKind =
@@ -169,6 +170,12 @@ export function useQueuedSend({
       [threadId]: [item, ...(prev[threadId] ?? [])],
     }));
   }, []);
+
+  const findQueuedMessage = useCallback(
+    (threadId: string, messageId: string) =>
+      (queuedByThread[threadId] ?? []).find((entry) => entry.id === messageId) ?? null,
+    [queuedByThread],
+  );
 
   const createQueuedItem = useCallback(
     (text: string, images: string[], appMentions: AppMention[]): QueuedMessage => ({
@@ -350,6 +357,53 @@ export function useQueuedSend({
     ],
   );
 
+  const steerQueuedMessage = useCallback(
+    async (threadId: string, messageId: string) => {
+      if (
+        !threadId ||
+        threadId !== activeThreadId ||
+        !isProcessing ||
+        isReviewing ||
+        !steerEnabled ||
+        !activeTurnId
+      ) {
+        return;
+      }
+      const item = findQueuedMessage(threadId, messageId);
+      if (!item) {
+        return;
+      }
+      removeQueuedMessage(threadId, messageId);
+      try {
+        const queuedMentions = item.appMentions ?? [];
+        const sendResult =
+          queuedMentions.length > 0
+            ? await sendUserMessage(item.text, item.images ?? [], queuedMentions, {
+              sendIntent: "steer",
+            })
+            : await sendUserMessage(item.text, item.images ?? [], undefined, {
+              sendIntent: "steer",
+            });
+        if (sendResult.status === "steer_failed") {
+          prependQueuedMessage(threadId, item);
+        }
+      } catch {
+        prependQueuedMessage(threadId, item);
+      }
+    },
+    [
+      activeThreadId,
+      activeTurnId,
+      findQueuedMessage,
+      isProcessing,
+      isReviewing,
+      prependQueuedMessage,
+      removeQueuedMessage,
+      sendUserMessage,
+      steerEnabled,
+    ],
+  );
+
   useEffect(() => {
     if (!activeThreadId) {
       return;
@@ -437,5 +491,6 @@ export function useQueuedSend({
     handleSend,
     queueMessage,
     removeQueuedMessage,
+    steerQueuedMessage,
   };
 }

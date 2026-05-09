@@ -535,6 +535,7 @@ export default function MainApp() {
       activeThreadId,
       startThreadForWorkspace,
       refreshThread,
+      listThreadsForWorkspace,
       reconnectLive,
     });
   const {

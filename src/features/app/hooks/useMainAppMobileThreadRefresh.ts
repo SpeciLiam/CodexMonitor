@@ -9,6 +9,10 @@ type UseMainAppMobileThreadRefreshArgs = {
     options?: { activate?: boolean },
   ) => Promise<string | null>;
   refreshThread: (workspaceId: string, threadId: string) => Promise<unknown>;
+  listThreadsForWorkspace: (
+    workspace: WorkspaceInfo,
+    options?: { preserveState?: boolean },
+  ) => Promise<unknown>;
   reconnectLive: (
     workspaceId: string,
     threadId: string,
@@ -21,6 +25,7 @@ export function useMainAppMobileThreadRefresh({
   activeThreadId,
   startThreadForWorkspace,
   refreshThread,
+  listThreadsForWorkspace,
   reconnectLive,
 }: UseMainAppMobileThreadRefreshArgs) {
   const [mobileThreadRefreshLoading, setMobileThreadRefreshLoading] = useState(false);
@@ -31,6 +36,7 @@ export function useMainAppMobileThreadRefresh({
     }
     setMobileThreadRefreshLoading(true);
     void (async () => {
+      await listThreadsForWorkspace(activeWorkspace, { preserveState: true });
       let threadId = activeThreadId;
       if (!threadId) {
         threadId = await startThreadForWorkspace(activeWorkspace.id, {
@@ -41,6 +47,7 @@ export function useMainAppMobileThreadRefresh({
         return;
       }
       await refreshThread(activeWorkspace.id, threadId);
+      await listThreadsForWorkspace(activeWorkspace, { preserveState: true });
       await reconnectLive(activeWorkspace.id, threadId, { runResume: false });
     })()
       .catch(() => {
@@ -52,6 +59,7 @@ export function useMainAppMobileThreadRefresh({
   }, [
     activeThreadId,
     activeWorkspace,
+    listThreadsForWorkspace,
     mobileThreadRefreshLoading,
     reconnectLive,
     refreshThread,
